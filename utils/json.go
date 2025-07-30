@@ -33,7 +33,6 @@ func WriteJsonSuccessResponse(w http.ResponseWriter, status int, message string,
 	response["status"] = "success"
 	response["message"] = message
 	response["data"] = data
-
 	return WriteJsonResponse(w, status, response)
 }
 
