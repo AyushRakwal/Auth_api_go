@@ -6,8 +6,10 @@ import (
 )
 
 func RequestLogger(next http.Handler) http.Handler {
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("Received request: %s %s\n", r.Method, r.URL.Path)
-		next.ServeHTTP(w, r)
+
+		fmt.Println("Received request:", r.Method, r.URL.Path)
+		next.ServeHTTP(w, r) // Call the next handler in the chain
 	})
 }
