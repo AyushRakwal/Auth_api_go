@@ -7,12 +7,12 @@ import (
 	"golang.org/x/time/rate"
 )
 
-var limiter = rate.NewLimiter(rate.Every(1*time.Minute), 5) // 1 request per minute, burst of 5
+var limiter = rate.NewLimiter(rate.Every(1*time.Minute), 5) // 5 requests per minute
 
-func RateLimiterMiddleware(next http.Handler) http.Handler {
+func RateLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !limiter.Allow() {
-			http.Error(w, "Too many requests, please try again later", http.StatusTooManyRequests)
+			http.Error(w, "Too many requests", http.StatusTooManyRequests)
 			return
 		}
 		next.ServeHTTP(w, r)
