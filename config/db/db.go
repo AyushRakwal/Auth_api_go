@@ -9,15 +9,16 @@ import (
 )
 
 func SetupDB() (*sql.DB, error) {
+
 	cfg := mysql.NewConfig()
 
 	cfg.User = env.GetString("DB_USER", "root")
-	cfg.Passwd = env.GetString("DB_PASSWORD", "password")
+	cfg.Passwd = env.GetString("DB_PASSWORD", "root")
 	cfg.Net = env.GetString("DB_NET", "tcp")
-	cfg.Addr = env.GetString("DB_ADDR", "127.0.1:3306")
-	cfg.DBName = env.GetString("DBNAME", "auth_dev")
+	cfg.Addr = env.GetString("DB_ADDR", "127.0.0.1:3306")
+	cfg.DBName = env.GetString("DBName", "auth_dev")
 
-	fmt.Println("Connecting to database with config:", cfg.DBName, cfg.FormatDSN())
+	fmt.Println("Connecting to database:", cfg.DBName, cfg.FormatDSN())
 
 	db, err := sql.Open("mysql", cfg.FormatDSN())
 
@@ -26,11 +27,13 @@ func SetupDB() (*sql.DB, error) {
 		return nil, err
 	}
 
+	fmt.Println(("Trying to connect to database..."))
 	pingErr := db.Ping()
 	if pingErr != nil {
 		fmt.Println("Error pinging database:", pingErr)
 		return nil, pingErr
 	}
-	fmt.Println("Successfully connected to the database:", cfg.DBName)
+	fmt.Println("Connected to database successfully:", cfg.DBName)
+
 	return db, nil
 }

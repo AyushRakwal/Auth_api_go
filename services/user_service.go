@@ -3,6 +3,8 @@ package services
 import (
 	env "AuthInGo/config/env"
 	db "AuthInGo/db/repositories"
+	"AuthInGo/dto"
+	"AuthInGo/models"
 	"AuthInGo/utils"
 	"fmt"
 
@@ -10,9 +12,9 @@ import (
 )
 
 type UserService interface {
-	GetUserById() error
-	CreateUser() error
-	LoginUser() (string, error)
+	GetUserById(id string) (*models.User, error)
+	CreateUser(payload *dto.CreateUserRequestDTO) (*models.User, error)
+	LoginUser(payload *dto.LoginUserRequestDTO) (string, error)
 }
 
 type UserServiceImpl struct {
@@ -25,31 +27,37 @@ func NewUserService(_userRepository db.UserRepository) UserService {
 	}
 }
 
-func (u *UserServiceImpl) GetUserById() error {
+func (u *UserServiceImpl) GetUserById(id string) (*models.User, error) {
 	fmt.Println("Fetching user in UserService")
-	u.userRepository.GetByID()
-	return nil
+	user, err := u.userRepository.GetByID(id)
+	if err != nil {
+		fmt.Println("Error fetching user:", err)
+		return nil, err
+	}
+	return user, nil
 }
 
-func (u *UserServiceImpl) CreateUser() error {
+func (u *UserServiceImpl) CreateUser(payload *dto.CreateUserRequestDTO) (*models.User, error) {
 	fmt.Println("Creating user in UserService")
-	password := "hardcoded"
-	hashedPassword, err := utils.HashPassword(password)
+
+	hashedPassword, err := utils.HashPassword(payload.Password)
 	if err != nil {
 		fmt.Println("Error hashing password:", err)
-		return err
+		return nil, err
 	}
-	u.userRepository.Create(
-		"user1",
-		"hardcoded_pass",
-		hashedPassword,
-	)
-	return nil
+
+	user, err := u.userRepository.Create(payload.Username, payload.Email, hashedPassword)
+	if err != nil {
+		fmt.Println("Error creating user:", err)
+		return nil, err
+	}
+
+	return user, nil
 }
 
-func (u *UserServiceImpl) LoginUser() (string, error) {
-	email := "temp@temp.com"
-	password := "temp_pass"
+func (u *UserServiceImpl) LoginUser(payload *dto.LoginUserRequestDTO) (string, error) {
+	email := payload.Email
+	password := payload.Password
 
 	user, err := u.userRepository.GetByEmail(email)
 
@@ -60,21 +68,23 @@ func (u *UserServiceImpl) LoginUser() (string, error) {
 
 	if user == nil {
 		fmt.Println("No user found with the given email")
-		return "", fmt.Errorf("no user found with the given email")
+		return "", fmt.Errorf("no user found with email: %s", email)
 	}
 
 	isPasswordValid := utils.CheckPasswordHash(password, user.Password)
 
 	if !isPasswordValid {
-		fmt.Println("Invalid password")
-		return "", fmt.Errorf("invalid password")
+		fmt.Println("Password does not match")
+		return "", nil
 	}
 
-	payload := jwt.MapClaims{
+	jwtPayload := jwt.MapClaims{
 		"email": user.Email,
 		"id":    user.Id,
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtPayload)
+
 	tokenString, err := token.SignedString([]byte(env.GetString("JWT_SECRET", "TOKEN")))
 
 	if err != nil {
@@ -82,6 +92,7 @@ func (u *UserServiceImpl) LoginUser() (string, error) {
 		return "", err
 	}
 
-	fmt.Println("JWT Token generated successfully:", tokenString)
+	fmt.Println("JWT Token:", tokenString)
+
 	return tokenString, nil
 }
